@@ -1,0 +1,13 @@
+OVERHEAD OPS - WORLD DESIGN REVISION 2
+
+This revision focuses on making existing maps read more like environments rather than flat tile arenas.
+
+- Existing solid wall tiles now render as raised architectural/terrain volumes with cast shadows, ledges, facade variation, and windows on urban maps. The grid collision remains authoritative, so these structures are not just painted on top of walkable ground.
+- City maps have tile-stable pavement wear, subtle lane markings, concrete cracks, and varied building facades.
+- Field/industrial maps have denser grass tufts, dirt patches, and raised embankment treatments on solid tiles.
+- Scenery remains deterministic by map ID and tile coordinate to avoid flicker between frames.
+- Existing respawn loadout selection remains limited to unlocked weapon IDs in the saved loadout system; scorestreaks retain their dedicated HUD panel and 4/5/6 hotkeys.
+- The operator preview remains a full-body angular showcase rather than a circular portrait.
+- Intro state is held by the application session; returning to the main menu should not replay the studio intro. Intro can be skipped with a key or mouse click.
+
+Important limitation: this is still a 2D Pygame renderer with 2.5D visual depth, not a polygonal 3D engine. Urban building walls use the existing map's collision grid; this revision does not procedurally add new floorplan geometry or make every prop independently interactive. Please playtest maps in the actual game for art/collision alignment and performance on your machine.

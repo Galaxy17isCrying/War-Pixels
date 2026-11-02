@@ -1,0 +1,122 @@
+[
+  {
+    "id": "crashsite",
+    "name": "CRASHSITE",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Crashsite tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "crashsite.txt"
+  },
+  {
+    "id": "firing_range",
+    "name": "FIRING RANGE",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Firing Range tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "firing_range.txt"
+  },
+  {
+    "id": "nuketown",
+    "name": "NUKETOWN",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Nuketown tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "nuketown.txt"
+  },
+  {
+    "id": "standoff",
+    "name": "STANDOFF",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Standoff tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "standoff.txt"
+  },
+  {
+    "id": "depot_09",
+    "name": "DEPOT 09",
+    "size": "SMALL",
+    "rating": 2,
+    "desc": "Compact industrial warehouse. Shelf rows, tight gaps and brutal close-range fights.",
+    "file": "depot_09.txt"
+  },
+  {
+    "id": "hijackedbay",
+    "name": "HIJACKEDBAY",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Hijackedbay tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "hijackedbay.txt"
+  },
+  {
+    "id": "launchpad",
+    "name": "LAUNCHPAD",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Launchpad tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "launchpad.txt"
+  },
+  {
+    "id": "marketrow",
+    "name": "MARKETROW",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Marketrow tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "marketrow.txt"
+  },
+  {
+    "id": "raidhouse",
+    "name": "RAIDHOUSE",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Raidhouse tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "raidhouse.txt"
+  },
+  {
+    "id": "summitline",
+    "name": "SUMMITLINE",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Summitline tactical combat arena. Multiple lanes and mixed engagement ranges.",
+    "file": "summitline.txt"
+  },
+  {
+    "id": "dustline",
+    "name": "DUSTLINE",
+    "size": "SMALL-MEDIUM",
+    "rating": 2,
+    "desc": "Desert outpost of shipping containers, huts and open courtyards. Mixed ranges.",
+    "file": "dustline.txt"
+  },
+  {
+    "id": "blacksite",
+    "name": "BLACKSITE",
+    "size": "MEDIUM",
+    "rating": 3,
+    "desc": "Secret research facility: corridors, labs and several entrances. Watch your doors.",
+    "file": "blacksite.txt"
+  },
+  {
+    "id": "iron_district",
+    "name": "IRON DISTRICT",
+    "size": "LARGE",
+    "rating": 4,
+    "desc": "Urban industrial zone with long streets, alleys and enterable buildings. Snipers thrive.",
+    "file": "iron_district.txt"
+  },
+  {
+    "id": "frontier",
+    "name": "FRONTIER COMPLEX",
+    "size": "VERY LARGE",
+    "rating": 5,
+    "desc": "Sprawling military installation with walled compounds, flank routes and towers.",
+    "file": "frontier.txt"
+  },
+  {
+    "id": "ground_war",
+    "name": "GROUND WAR",
+    "size": "EXTREME",
+    "rating": 5,
+    "desc": "Massive 100-player battlefield with multiple capture sectors.",
+    "file": "ground_war.txt"
+  }
+]
