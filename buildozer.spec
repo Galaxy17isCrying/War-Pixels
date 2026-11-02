@@ -12,6 +12,8 @@ orientation = landscape
 fullscreen = 1
 
 android.permissions = INTERNET,ACCESS_NETWORK_STATE
+android.ndk = 25b
 android.minapi = 24
 android.archs = arm64-v8a
 android.accept_sdk_license = True
+p4a.branch = v2023.09.16
