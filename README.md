@@ -52,7 +52,7 @@ The current Windows workspace does not include Buildozer or Android SDK/ADB, so 
 
 ## Downloadable builds
 
-The **Build War Pixels** GitHub Actions workflow packages a Windows executable and an Android APK on pushes to `main` and on manual runs. Download the build artifacts from the workflow run, or push a version tag such as `v1.0.0` to create a GitHub release containing both builds. Android builds target `arm64-v8a`; install the APK on a compatible device and grant any requested permissions.
+The **Build War Pixels** GitHub Actions workflow packages a Windows executable and an Android APK on pushes to `main` and on manual runs. See [Player downloads](#player-downloads) below for links to the latest build artifacts and versioned releases. Android builds target `arm64-v8a`; install the APK on a compatible device and grant any requested permissions.
 
 ## GitHub OAuth and account API
 
@@ -75,3 +75,8 @@ python -m server --host 0.0.0.0 --port 8765
 In each game client, choose **MULTIPLAYER** and enter the server as `host:port`. **FIND MATCH** joins the public Search and Destroy queue. To play with a friend, choose **CREATE ROOM**, share the six-character code, and have them enter it and choose **JOIN ROOM**; the match starts when they join. Each team is filled with bots. Clients run the same seeded simulation while the server relays inputs at 20 Hz. This prototype is not server-authoritative and should not be treated as cheat-resistant competitive hosting.
 
 The relay does not need MySQL. The existing optional MySQL stats mirror remains a client-side setting; it is separate from matchmaking. For remote play, host the service on a reachable machine and allow inbound TCP on the configured port. See [server/README.md](./server/README.md) for the protocol and local service details.
+
+## Player downloads
+
+- [Latest build workflow](https://github.com/Galaxy17isCrying/War-Pixels/actions/workflows/build.yml?query=branch%3Amain): open the newest completed run and download `WarPixels-Windows` or `WarPixels-Android` under **Artifacts**. Build artifacts expire after 90 days.
+- [Versioned releases](https://github.com/Galaxy17isCrying/War-Pixels/releases): permanent downloads for published versions. Each release includes the Windows ZIP and Android APK after both builds succeed.
