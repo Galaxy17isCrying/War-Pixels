@@ -19,6 +19,7 @@ TICK_RATE = 20
 TICK_INTERVAL = 1 / TICK_RATE
 MAX_LINE_BYTES = 16_384
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9_-]{1,48}$")
+_ROOM_CODE = re.compile(r"^[A-HJ-NP-Z2-9]{6}$")
 _PROFILE_FIELDS = {
     "player_id": 64,
     "name": 32,
@@ -86,6 +87,44 @@ def validate_queue_message(message: Any) -> dict[str, Any]:
         "team_size": team_size,
         "profile": profile,
     }
+
+
+def validate_room_message(message: Any, room_action: str) -> dict[str, Any]:
+    """Validate a private-room create or join request."""
+    if room_action not in ("create_room", "join_room"):
+        raise ProtocolError("room action is not supported")
+    expected = {"type", "mode_id", "map_id", "team_size", "profile"}
+    if room_action == "join_room":
+        expected.add("room_code")
+    if not isinstance(message, dict) or set(message) != expected or message.get("type") != room_action:
+        raise ProtocolError(f"first message must be a {room_action} request")
+
+    queue_request = {
+        "type": "queue",
+        "mode_id": message["mode_id"],
+        "map_id": message["map_id"],
+        "team_size": message["team_size"],
+        "profile": message["profile"],
+    }
+    clean = validate_queue_message(queue_request)
+    clean["type"] = room_action
+    if room_action == "join_room":
+        room_code = _validate_text(message["room_code"], "room_code", 6).upper()
+        if not _ROOM_CODE.fullmatch(room_code):
+            raise ProtocolError("room_code must be a six-character room code")
+        clean["room_code"] = room_code
+    return clean
+
+
+def validate_client_request(message: Any) -> dict[str, Any]:
+    """Validate the first request from either a matchmaking or room client."""
+    if isinstance(message, dict):
+        request_type = message.get("type")
+        if request_type == "queue":
+            return validate_queue_message(message)
+        if request_type in ("create_room", "join_room"):
+            return validate_room_message(message, request_type)
+    raise ProtocolError("first message must be a queue, create_room, or join_room request")
 
 
 def validate_action(action: Any) -> dict[str, Any]:
@@ -165,6 +204,7 @@ class _Client:
     reader: asyncio.StreamReader
     writer: asyncio.StreamWriter
     queue_request: dict[str, Any]
+    room_code: str | None = None
     matched: asyncio.Event = field(default_factory=asyncio.Event)
     match: "_Match | None" = None
     held: dict[str, Any] = field(default_factory=lambda: {
@@ -225,6 +265,7 @@ class MatchmakingServer:
 
     def __init__(self) -> None:
         self._waiting: dict[tuple[str, str, int], deque[_Client]] = defaultdict(deque)
+        self._rooms: dict[str, _Client] = {}
         self._clients: set[_Client] = set()
         self._player_ids: set[str] = set()
         self._lock = asyncio.Lock()
@@ -277,7 +318,7 @@ class MatchmakingServer:
             request = await read_message(reader)
             if request is None:
                 return
-            request = validate_queue_message(request)
+            request = validate_client_request(request)
             client = _Client(reader=reader, writer=writer, queue_request=request)
             await self._register(client)
             await client.matched.wait()
@@ -310,10 +351,11 @@ class MatchmakingServer:
                 client.held["reload"] = action["reload"]
                 client.held["ability"] = action["ability"]
                 client.held["swap_to"] = action["swap_to"]
-        except (ProtocolError, ConnectionError, OSError, asyncio.IncompleteReadError):
-            if client is None and not writer.is_closing():
+        except (ProtocolError, ConnectionError, OSError, asyncio.IncompleteReadError) as exc:
+            if (client is None or client not in self._clients) and not writer.is_closing():
                 try:
-                    await self._send(writer, {"type": "error", "message": "invalid protocol message"})
+                    message = str(exc) if isinstance(exc, ProtocolError) else "invalid protocol message"
+                    await self._send(writer, {"type": "error", "message": message})
                 except (ConnectionError, OSError, ProtocolError):
                     pass
         finally:
@@ -335,8 +377,35 @@ class MatchmakingServer:
             player_id = client.player_id
             if player_id in self._player_ids:
                 raise ProtocolError("player_id is already connected")
+            request_type = client.queue_request["type"]
+            host = None
+            if request_type == "join_room":
+                room_code = client.queue_request["room_code"]
+                host = self._rooms.get(room_code)
+                if host is None or host.writer.is_closing():
+                    self._rooms.pop(room_code, None)
+                    raise ProtocolError("room not found")
+                host_request = host.queue_request
+                if any(host_request[name] != client.queue_request[name]
+                       for name in ("mode_id", "map_id", "team_size")):
+                    raise ProtocolError("room settings do not match")
             self._player_ids.add(player_id)
             self._clients.add(client)
+            if request_type == "create_room":
+                room_code = "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(6))
+                while room_code in self._rooms:
+                    room_code = "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(6))
+                self._rooms[room_code] = client
+                client.room_code = room_code
+                await self._send(client.writer, {"type": "room_created", "room_code": room_code})
+                return
+            if request_type == "join_room":
+                assert host is not None
+                self._rooms.pop(client.queue_request["room_code"], None)
+                host.room_code = None
+                client.room_code = None
+                self._pair_clients(host, client, key)
+                return
             queue = self._waiting[key]
             while queue and queue[0].writer.is_closing():
                 queue.popleft()
@@ -344,21 +413,29 @@ class MatchmakingServer:
                 other = queue.popleft()
                 if not queue:
                     self._waiting.pop(key, None)
-                match = _Match(
-                    match_id=secrets.token_urlsafe(12),
-                    seed=secrets.randbelow(2**31),
-                    clients=(other, client),
-                    mode_id=key[0],
-                    map_id=key[1],
-                    team_size=key[2],
-                )
-                other.match = client.match = match
-                other.matched.set()
-                client.matched.set()
-                match.tick_task = asyncio.create_task(self._tick_loop(match))
+                self._pair_clients(other, client, key)
             else:
                 queue.append(client)
                 await self._send(client.writer, {"type": "queued"})
+
+    def _pair_clients(
+        self,
+        first: _Client,
+        second: _Client,
+        key: tuple[str, str, int],
+    ) -> None:
+        match = _Match(
+            match_id=secrets.token_urlsafe(12),
+            seed=secrets.randbelow(2**31),
+            clients=(first, second),
+            mode_id=key[0],
+            map_id=key[1],
+            team_size=key[2],
+        )
+        first.match = second.match = match
+        first.matched.set()
+        second.matched.set()
+        match.tick_task = asyncio.create_task(self._tick_loop(match))
 
     async def _remove_client(self, client: _Client) -> None:
         async with self._lock:
@@ -366,6 +443,9 @@ class MatchmakingServer:
                 return
             self._clients.discard(client)
             self._player_ids.discard(client.player_id)
+            if client.room_code is not None and self._rooms.get(client.room_code) is client:
+                self._rooms.pop(client.room_code, None)
+                client.room_code = None
             for key, queue in list(self._waiting.items()):
                 try:
                     queue.remove(client)

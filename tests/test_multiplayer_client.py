@@ -40,6 +40,51 @@ def idle_action(**overrides):
 
 
 class MultiplayerClientTests(unittest.IsolatedAsyncioTestCase):
+    async def test_friend_room_code_connects_two_clients(self):
+        matchmaking = MatchmakingServer()
+        server = await matchmaking.start("127.0.0.1", 0)
+        port = server.sockets[0].getsockname()[1]
+        host_request = request("host")
+        host_request["type"] = "create_room"
+        host = MatchmakingClient("127.0.0.1", port, host_request)
+        friend = None
+        try:
+            host.start()
+            room_code = None
+            deadline = asyncio.get_running_loop().time() + 3.0
+            while room_code is None and asyncio.get_running_loop().time() < deadline:
+                for message in host.poll():
+                    if message.get("type") == "room_created":
+                        room_code = message["room_code"]
+                    elif message.get("type") == "error":
+                        self.fail(message.get("message", "room creation failed"))
+                await asyncio.sleep(0.01)
+            self.assertIsNotNone(room_code, "timed out waiting for a friend room")
+
+            friend_request = request("friend")
+            friend_request["type"] = "join_room"
+            friend_request["room_code"] = room_code
+            friend = MatchmakingClient("127.0.0.1", port, friend_request)
+            friend.start()
+            matched = {host.player_id: None, friend.player_id: None}
+            deadline = asyncio.get_running_loop().time() + 3.0
+            while asyncio.get_running_loop().time() < deadline and any(value is None for value in matched.values()):
+                for client in (host, friend):
+                    for message in client.poll():
+                        if message.get("type") == "matched":
+                            matched[client.player_id] = message
+                        elif message.get("type") == "error":
+                            self.fail(message.get("message", "room join failed"))
+                await asyncio.sleep(0.01)
+            self.assertIsNotNone(matched["host"])
+            self.assertIsNotNone(matched["friend"])
+            self.assertEqual(matched["host"], matched["friend"])
+        finally:
+            host.close()
+            if friend is not None:
+                friend.close()
+            await matchmaking.close()
+
     async def test_clients_match_and_receive_relayed_inputs(self):
         matchmaking = MatchmakingServer()
         server = await matchmaking.start("127.0.0.1", 0)

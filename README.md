@@ -72,6 +72,6 @@ Run the dedicated matchmaking and input-relay service from the project root:
 python -m server --host 0.0.0.0 --port 8765
 ```
 
-In each game client, choose **ONLINE MATCHMAKING**, enter the server as `host:port`, and find a match. The initial online queue is Search and Destroy on Depot 09; each team has one human player and bots fill the remaining slots. Clients run the same seeded simulation while the server relays inputs at 20 Hz. This prototype is not server-authoritative and should not be treated as cheat-resistant competitive hosting.
+In each game client, choose **MULTIPLAYER** and enter the server as `host:port`. **FIND MATCH** joins the public Search and Destroy queue. To play with a friend, choose **CREATE ROOM**, share the six-character code, and have them enter it and choose **JOIN ROOM**; the match starts when they join. Each team is filled with bots. Clients run the same seeded simulation while the server relays inputs at 20 Hz. This prototype is not server-authoritative and should not be treated as cheat-resistant competitive hosting.
 
 The relay does not need MySQL. The existing optional MySQL stats mirror remains a client-side setting; it is separate from matchmaking. For remote play, host the service on a reachable machine and allow inbound TCP on the configured port. See [server/README.md](./server/README.md) for the protocol and local service details.

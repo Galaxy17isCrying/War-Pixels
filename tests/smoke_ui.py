@@ -3,6 +3,7 @@ import os
 import sys
 import math
 import tempfile
+from unittest.mock import patch
 from pathlib import Path
 
 os.environ["OVERHEAD_OPS_HOME"] = tempfile.mkdtemp()
@@ -83,11 +84,41 @@ for sc in screens:
 print("menu screens ok:", len(screens))
 online_screen = OnlineScene(app)
 online_screen.draw(app.canvas)
-online_screen.event(pygame.Event(pygame.MOUSEBUTTONDOWN, button=1))
+with patch.object(app, "mouse", return_value=online_screen.address_rect.center):
+    online_screen.event(pygame.Event(pygame.MOUSEBUTTONDOWN, button=1))
 assert online_screen.editing_address
 online_screen.event(pygame.Event(pygame.KEYDOWN, key=0, unicode="x"))
 assert online_screen.address.endswith("x")
-print("online matchmaking screen ok")
+online_screen.address = app.settings["match_server"]
+with patch.object(app, "mouse", return_value=online_screen.room_code_rect.center):
+    online_screen.event(pygame.Event(pygame.MOUSEBUTTONDOWN, button=1))
+online_screen.event(pygame.Event(pygame.KEYDOWN, key=0, unicode="ab23cd"))
+assert online_screen.room_code == "AB23CD"
+
+
+class StubMatchmakingClient:
+    def __init__(self, host, port, request):
+        self.request = request
+
+    def start(self):
+        pass
+
+    def close(self):
+        pass
+
+
+with patch("src.online_scene.MatchmakingClient", StubMatchmakingClient):
+    for button, expected_type in (
+        (online_screen.create_room_rect, "create_room"),
+        (online_screen.join_room_rect, "join_room"),
+        (online_screen.matchmaking_rect, "queue"),
+    ):
+        with patch.object(app, "mouse", return_value=button.center):
+            online_screen.event(pygame.Event(pygame.MOUSEBUTTONDOWN, button=1))
+        assert online_screen.client.request["type"] == expected_type
+        if expected_type == "join_room":
+            assert online_screen.client.request["room_code"] == "AB23CD"
+print("friend rooms and public matchmaking screen ok")
 drawn_body_colors = []
 base_polygon = pygame.draw.polygon
 
@@ -296,6 +327,11 @@ leaderboard.event(pygame.Event(pygame.MOUSEBUTTONDOWN, button=1,
 assert leaderboard.selected_profile["is_player"]
 assert len(app.scenes) == scene_count
 leaderboard.draw(app.canvas)
+app.stats.set_player_picture("missing-avatar.png")
+with patch.object(gfx, "draw_profile_avatar") as draw_avatar:
+    leaderboard._draw_player_profile(app.canvas, leaderboard.selected_profile)
+    assert draw_avatar.call_args.args[4]["id"] == app.stats.equipped_avatar_frame()
+app.stats.set_player_picture("")
 leaderboard.event(pygame.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=(640, 360)))
 assert leaderboard.selected_profile["is_player"], "clicking inside a profile must not dismiss it"
 leaderboard.event(pygame.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=(20, 20)))

@@ -294,10 +294,13 @@ def draw_profile_avatar(surf, center, size, picture_path, frame, t):
         "EPIC": (190, 105, 245),
         "LEGENDARY": (255, 170, 40),
     }
-    color = frame.get("color", palette.get(frame["rarity"], palette["COMMON"]))
+    if not isinstance(frame, dict):
+        frame = {}
+    rarity = frame.get("rarity", "COMMON")
+    color = frame.get("color", palette.get(rarity, palette["COMMON"]))
     cx, cy = int(center[0]), int(center[1])
     radius = size // 2
-    animation = frame["animation"]
+    animation = frame.get("animation", "static")
     if animation == "static":
         pygame.draw.circle(surf, color, (cx, cy), radius + 3, max(2, size // 18))
         frame = pygame.Rect(cx - radius - 5, cy - radius - 5, size + 10, size + 10)

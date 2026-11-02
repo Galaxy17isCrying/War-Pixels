@@ -8,6 +8,7 @@ from server.matchmaking_server import (
     encode_message,
     read_message,
     validate_action,
+    validate_client_request,
     validate_queue_message,
 )
 
@@ -27,6 +28,14 @@ def queue_message(player_id):
             "equipment": "none",
         },
     }
+
+
+def room_message(player_id, action, room_code=None):
+    message = queue_message(player_id)
+    message["type"] = action
+    if room_code is not None:
+        message["room_code"] = room_code
+    return message
 
 
 def action(**overrides):
@@ -62,6 +71,15 @@ class ValidatorTests(unittest.TestCase):
         request["profile"]["rank"] = "gold"
         with self.assertRaises(ProtocolError):
             validate_queue_message(request)
+
+    def test_room_requests_validate_and_normalize_join_code(self):
+        created = validate_client_request(room_message("host", "create_room"))
+        joined = validate_client_request(room_message("friend", "join_room", "ab23cd"))
+
+        self.assertEqual(created["type"], "create_room")
+        self.assertEqual(joined["room_code"], "AB23CD")
+        with self.assertRaises(ProtocolError):
+            validate_client_request(room_message("friend", "join_room", "BAD!"))
 
     def test_action_accepts_exact_client_payload(self):
         payload = action(
@@ -102,6 +120,57 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await read_message(reader), {"type": "ok", "text": "café"})
         with self.assertRaises(ProtocolError):
             encode_message({"payload": "x" * MAX_LINE_BYTES})
+
+    async def test_friend_room_code_pairs_create_and_join_clients(self):
+        matchmaking = MatchmakingServer()
+        server = await matchmaking.start("127.0.0.1", 0)
+        port = server.sockets[0].getsockname()[1]
+        host_pair = friend_pair = None
+        try:
+            host_pair = await asyncio.open_connection("127.0.0.1", port)
+            host_reader, host_writer = host_pair
+            host_writer.write(encode_message(room_message("host", "create_room")))
+            await host_writer.drain()
+            created = await asyncio.wait_for(read_message(host_reader), 1)
+            self.assertEqual(created["type"], "room_created")
+            self.assertRegex(created["room_code"], r"^[A-HJ-NP-Z2-9]{6}$")
+
+            friend_pair = await asyncio.open_connection("127.0.0.1", port)
+            friend_reader, friend_writer = friend_pair
+            friend_writer.write(encode_message(room_message(
+                "friend", "join_room", created["room_code"].lower()
+            )))
+            await friend_writer.drain()
+            host_match, friend_match = await asyncio.wait_for(
+                asyncio.gather(read_message(host_reader), read_message(friend_reader)), 1
+            )
+
+            self.assertEqual(host_match["type"], "matched")
+            self.assertEqual(friend_match, host_match)
+            self.assertEqual(
+                [(player["player_id"], player["team"]) for player in host_match["players"]],
+                [("host", 0), ("friend", 1)],
+            )
+        finally:
+            for pair in (host_pair, friend_pair):
+                if pair:
+                    pair[1].close()
+            await matchmaking.close()
+
+    async def test_joining_unknown_room_returns_error(self):
+        matchmaking = MatchmakingServer()
+        server = await matchmaking.start("127.0.0.1", 0)
+        port = server.sockets[0].getsockname()[1]
+        try:
+            reader, writer = await asyncio.open_connection("127.0.0.1", port)
+            writer.write(encode_message(room_message("friend", "join_room", "ZZZZZZ")))
+            await writer.drain()
+            response = await asyncio.wait_for(read_message(reader), 1)
+            self.assertEqual(response, {"type": "error", "message": "room not found"})
+            writer.close()
+            await writer.wait_closed()
+        finally:
+            await matchmaking.close()
 
     async def test_match_and_tick_edge_lifetime_and_disconnect(self):
         matchmaking = MatchmakingServer()

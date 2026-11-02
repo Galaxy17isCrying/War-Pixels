@@ -88,7 +88,7 @@ class MainMenu(Scene):
         super().__init__(app)
         app.audio.start_music("menu")
         a = app
-        self.menu = Menu(a, [("ONLINE MATCHMAKING", self.play_online),
+        self.menu = Menu(a, [("MULTIPLAYER", self.play_online),
                              ("CLASSIC (CASUAL)", self.play_classic),
                              ("RANKED MATCH", self.play_ranked),
                              ("CAMPAIGN", lambda: a.push(CampaignScene(a))),
@@ -631,7 +631,7 @@ class LeaderboardScene(Scene):
         panel(surf, (330, 155, 620, 410), fill=(16, 23, 21), alpha=250)
         text(surf, "PLAYER PROFILE", (640, 178), 30, AMBER, "midtop")
         picture = self.app.stats.player_picture() if row["is_player"] else None
-        frame = None
+        frame = avatar_frame(self.app.stats.equipped_avatar_frame()) if row["is_player"] else None
         if row["is_player"] and picture:
             gfx.draw_profile_avatar(surf, (435, 300), 94, picture, frame, self.t)
         else:
