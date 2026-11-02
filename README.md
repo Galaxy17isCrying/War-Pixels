@@ -46,7 +46,7 @@ Validation after these changes: `python -m unittest discover -s tests -q` (94 te
 
 ## Android and touch controls
 
-The Android build configuration is in `buildozer.spec`. Build APKs from Linux or WSL with Buildozer installed (`buildozer android debug`); this project targets landscape mode. Android users can open **CUSTOMIZE MOBILE HUD** from the main menu or pause menu, drag controls, and resize the selected control with `+`/`-` or the mouse wheel. The layout is saved in local settings.
+The Android build configuration is in `buildozer.spec`. APKs target Android 7.0 (API 24) and newer and use landscape mode. Build from Linux or WSL with Buildozer installed (`buildozer android debug`). Android users can open **CUSTOMIZE MOBILE HUD** from the main menu or pause menu, drag controls, and resize the selected control with `+`/`-` or the mouse wheel. The layout is saved in local settings.
 
 The current Windows workspace does not include Buildozer or Android SDK/ADB, so an APK has not been built or device-tested here.
 
