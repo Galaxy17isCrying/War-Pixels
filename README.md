@@ -52,7 +52,7 @@ The current Windows workspace does not include Buildozer or Android SDK/ADB, so 
 
 ## Downloadable builds
 
-The **Build War Pixels** GitHub Actions workflow packages a Windows executable and an Android APK. Run it manually from the repository's **Actions** tab to download build artifacts, or push a version tag such as `v1.0.0` to create a GitHub release containing both builds. Android builds target `arm64-v8a`; install the APK on a compatible device and grant any requested permissions.
+The **Build War Pixels** GitHub Actions workflow packages a Windows executable and an Android APK on pushes to `main` and on manual runs. Download the build artifacts from the workflow run, or push a version tag such as `v1.0.0` to create a GitHub release containing both builds. Android builds target `arm64-v8a`; install the APK on a compatible device and grant any requested permissions.
 
 ## GitHub OAuth and account API
 
